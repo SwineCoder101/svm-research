@@ -8,15 +8,53 @@ This repository contains solutions for a comprehensive Solana development code e
 - [Section 2: Solana Networking](#section-2-solana-networking)
 - [Section 3: Solana Virtual Machine Runtime](#section-3-solana-virtual-machine-runtime)
 - [Section 4: Alpenglow Consensus](#section-4-alpenglow-consensus)
-- [Section 5: Leadership & Executive Collaboration](#section-5-leadership--executive-collaboration)
-
+- [Section 5 Leadership & Executive Collaboration](#section-5-leadership--executive-collaboration)
+----------------------------------------------
 ## Section 1: Advanced Rust
+
+----------------------------------------------
 
 ### Question 1.1 - Zero-Copy Deserialization
 Consider the following Solana account data structure. Implement a zero-copy deserializer that can efficiently parse this data without allocations:
 
-Refer to src/zero_copy_deserialization.rs
+```
+// Account data layout:
+// [discriminator: u8][owner: Pubkey(32)][amount: u64][data_len: u32][data: Vec<u8>]
 
+use std::mem;
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct AccountHeader {
+    discriminator: u8,
+    owner: [u8; 32],
+    amount: u64,
+    data_len: u32,
+}
+
+pub struct Account<'a> {
+    header: &'a AccountHeader,
+    data: &'a [u8],
+}
+
+impl<'a> Account<'a> {
+    pub fn from_bytes(bytes: &'a [u8]) -> Result<Self, ParseError> {
+        // TODO: Implement zero-copy parsing
+        // Requirements:
+        // 1. Validate alignment requirements
+        // 2. Handle endianness correctly
+        // 3. Ensure memory safety
+        // 4. Return appropriate errors
+    }
+}
+```
+
+
+Refer to [src/zero_copy_deserialization.rs](src/zero_copy_deserialization.rs)
+
+**To run this example:** `cargo run 1_1`
+
+---
 
 ### Question 1.2 - Unsafe Rust and Memory Management
 Explain the memory safety issues in the following code and provide a corrected version:
@@ -130,8 +168,10 @@ fn main() {
     println!("Buffer length = {}", buffer.len());
 }
 ```
-
+----------------------------------------------
 ## Section 2: Solana Networking
+
+----------------------------------------------
 
 ### Question 2.1 - TPU and TVU Architecture
 Describe the data flow through Solana's Transaction Processing Unit (TPU) and Transaction Validation Unit (TVU). Include:
@@ -147,7 +187,6 @@ Write pseudocode or Rust code for a simplified version of the Banking Stage that
 The Transaction Processing Unit (TPU) is the leader-side execution pipeline inside every Solana validator.
 When your validator becomes the leader (for a given slot in Solana’s Proof of History sequence), it is responsible for collecting, verifying, executing, and packaging transactions into blocks (called entries) that get broadcast to the rest of the network.
 
-----------------------------------------------
 ##### 1. Fetch Stage
 Receives incoming transactions via QUIC from clients and forwarders (Gulf Stream network).
 Deduplicates packets and pushes them into the processing queue.
@@ -199,7 +238,7 @@ loop while is_current_leader():
   SHRED_AND_BROADCAST()
 end
 ```
-----------------------------------------------
+
 #### Transaction Validation unit
 The Transaction Validation Unit (TVU) is the validator-side pipeline in Solana.
 While the TPU (leader) produces blocks, the TVU receives, verifies, and replays them.
@@ -255,11 +294,86 @@ loop:
     CLEANUP_OLD_FORKS()
 end
 ```
+
+---
+
 ### Question 2.2 - Turbine Block Propagation
 
-Refer to file turbine_block_propagation.rs
+Refer to [src/turbine_block_propagation.rs](src/turbine_block_propagation.rs)
 
+**To run this example:** `cargo run 2_2`
+
+```
+use std::collections::HashMap;
+
+#[derive(Clone, Debug)]
+struct Node {
+    pubkey: [u8; 32],
+    stake: u64,
+}
+
+struct TurbineTree {
+    fanout: usize,
+    nodes: Vec<Node>,
+}
+
+impl TurbineTree {
+    fn new(fanout: usize, nodes: Vec<Node>) -> Self {
+        Self { fanout, nodes }
+    }
+
+    fn build_layer_matrix(&self, leader: &Node) -> Vec<Vec<Node>> {
+        // TODO: Implement the algorithm that:
+        // 1. Sorts nodes by stake weight
+        // 2. Constructs layers with the given fanout
+        // 3. Ensures the leader is at the root
+        // 4. Optimizes for network topology
+    }
+
+    fn calculate_propagation_time(&self, layers: &[Vec<Node>]) -> u64 {
+        // TODO: Calculate worst-case propagation time
+    }
+}
+
+```
+
+#### Implementation Overview
+
+The Turbine block propagation system implements Solana's efficient block distribution protocol. Here's how it works:
+
+**Core Algorithm (`build_layer_matrix`):**
+
+1. **Stake-based Sorting**: Orders nodes by stake weight (highest first) to prioritize high-stake validators for better network security and performance.
+
+2. **Layer Construction**: Creates a tree structure where each layer contains up to `fanout` nodes, forming an efficient propagation tree:
+   ```
+   Leader (Layer 0) → Fanout nodes (Layer 1) → Fanout² nodes (Layer 2) → ...
+   ```
+
+3. **Leader Positioning**: Ensures the leader node is always at the root (Layer 0) for optimal block distribution.
+
+4. **Network Topology Optimization**: Sorts nodes within each layer by public key for consistent, deterministic network topology.
+
+**Propagation Time Calculation:**
+
+The `calculate_propagation_time` method computes worst-case propagation time based on:
+- **Layer depth**: Deeper layers take longer to receive blocks
+- **Node count**: More nodes per layer means more propagation overhead
+- **Formula**: `(layer_index + 1) × number_of_nodes_in_layer`
+
+**Key Benefits:**
+
+- **Exponential Propagation**: Blocks spread through the network exponentially rather than flooding all nodes
+- **Stake-weighted Security**: High-stake validators are prioritized for better network resilience
+- **Sub-second Finality**: Enables Solana's fast block confirmation times
+- **Network Efficiency**: Reduces bandwidth usage compared to broadcast flooding
+
+This implementation demonstrates how Solana achieves its high throughput and low latency by using structured, stake-weighted block propagation instead of traditional peer-to-peer flooding.
+
+----------------------------------------------
 ## Section 3: Solana Virtual Machine Runtime
+
+----------------------------------------------
 
 ### Question 3.1 - BPF Bytecode and Verification
 
@@ -299,9 +413,13 @@ fn verify_program(instructions: &[BpfInstruction]) -> Result<(), VerificationErr
 }
 ```
 
+---
+
 ### Question 3.2 - Account State Management
 
-**Files:** `src/account_state_management.rs`
+**Files:** [src/account_state_management.rs](src/account_state_management.rs)
+
+**To run this example:** `cargo run 3_2`
 
 Advanced account state management system:
 
@@ -309,15 +427,16 @@ Advanced account state management system:
 - Pessimistic locking mechanisms
 - Atomic commit/rollback capabilities
 - Concurrent access safety
-
+----------------------------------------------
 ## Section 4: Alpenglow Consensus
-## Section 4,1
 
+----------------------------------------------
+## Section 4.1 - Alpenglow Analysis
 ### Alpenglow
 Alpenglow replaces Solana’s PoH + Tower BFT stack with two components: Votor (a fast, stake-weighted finality gadget) and Rotor (a low-latency data relay). Validators vote off-chain in one or two quick rounds — if ~80 % of stake responds in the first round, blocks finalize in ~100 ms; otherwise, a fallback round completes finality. Rotor ensures fast, single-hop propagation of block data.
 
 ### Tower BFT
-Tower BFT builds on Proof of History (PoH), which provides a verifiable timeline of events. Validators issue on-chain votes for blocks, forming a “vote tower.” Each vote exponentially increases lockout duration — making it costly to revert deeper forks. Finality emerges after sufficient votes accumulate, typically ~12 seconds.
+Tower BFT builds on Proof of History (PoH), which provides a verifiable timeline of events. Validators issue on-chain votes for blocks, forming a "vote tower." Each vote exponentially increases lockout duration — making it costly to revert deeper forks. Finality emerges after sufficient votes accumulate, typically ~12 seconds.
 
 ### Vote account
 Alpenglow eliminates per-block on-chain vote transactions. Instead, validators sign off-chain votes that are aggregated into compact proofs.
@@ -426,6 +545,7 @@ impl AlpenglowState {
 
 ## Comparison: Tower BFT vs Alpenglow
 
+
 ### Latency vs Throughput
 
 **Tower BFT:**
@@ -435,6 +555,7 @@ impl AlpenglowState {
 **Alpenglow:**
 - Ultra-low latency finality (~100-150 ms)
 - Higher effective throughput through off-chain aggregation and faster relays
+
 
 ### Network Partition Tolerance
 
@@ -469,9 +590,12 @@ impl AlpenglowState {
 - Simpler pipeline (Votor + Rotor)
 - Fewer on-chain components
 - New off-chain aggregation and relay coordination complexity
+----------------------------------------------
+## Section 5: Leadership & Executive Collaboration
+
+----------------------------------------------
 
 
-## Section 5
 ```
 pub struct AccountCache {
     // [1] Concurrency Improvement:

@@ -13,15 +13,15 @@ fn main() {
         run_zero_copy_deserialization();
     } else if args.len() > 1 && args[1] == "3_2" {
         run_account_state_management();
-    } else if args.len() > 1 && args[1] == "turbine" {
+    } else if args.len() > 1 && args[1] == "2_2" {
         // Run the turbine block propagation example
         turbine_block_propagation::main();
     }
     
     else {
-        println!("Usage: cargo run [1_1|3_2|turbine]");
+        println!("Usage: cargo run [1_1|2_2|3_2]");
         println!("1_1: zero-copy deserialization example");
+        println!("2_2: turbine block propagation example");
         println!("3_2: account state management example");
-        println!("turbine: turbine block propagation example");
     }
 }
