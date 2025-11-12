@@ -1,4 +1,3 @@
-# Solana Code Exam Submission
 
 This repository contains solutions for a comprehensive Solana development code exam covering advanced Rust concepts, Solana networking, virtual machine runtime, consensus algorithms, and technical leadership.
 
